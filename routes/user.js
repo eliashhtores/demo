@@ -8,7 +8,14 @@ app.use(express.json())
 // Get all users
 router.get('/', async (req, res) => {
     try {
-        const users = await pool.query('SELECT * FROM user')
+        const users =
+            await pool.query(`SELECT um.id, um.username, um.name, description AS user_type, um.active, w.name AS warehouse, us.username AS created_by, um.created_at, utr.username AS updated_by, um.updated_at 
+                                        FROM user um 
+                                        INNER JOIN user us ON (um.created_by = us.id)
+                                        INNER JOIN user utr ON (um.updated_by = utr.id)
+                                        JOIN user_type ut ON (ut.id = um.user_type_id)
+                                        JOIN warehouse w ON (w.id = um.warehouse_id)
+                                        ORDER BY um.id ASC`)
         res.json(users[0])
     } catch (error) {
         res.status(500).json({ message: error.message })
@@ -35,11 +42,13 @@ router.patch('/:id', getUser, async (req, res) => {
 })
 
 // Toggle user status
-router.delete('/:id', getUser, async (req, res) => {
+router.post('/toggle/:id', getUser, async (req, res) => {
     try {
         const { id } = req.params
-        const user = await pool.query('UPDATE user SET active = !active WHERE id = ?', [id])
-        res.json(user)
+        const { updated_by } = req.body
+        // const { updated_at } = req.body
+        const user = await pool.query('UPDATE user SET active = !active, updated_by = ? WHERE id = ?', [updated_by, id])
+        res.json(user[0])
     } catch (error) {
         res.status(500).json({ message: error.message })
         console.error(error.message)
@@ -64,7 +73,7 @@ router.post('/', async (req, res) => {
             warehouse_id,
             created_by,
         ])
-        res.json(newUser)
+        res.status(201).json(newUser)
     } catch (error) {
         res.status(500).json({ message: error.message })
         console.error(error.message)
@@ -77,6 +86,11 @@ router.post('/validate', async (req, res) => {
         const { username } = req.body
         const { password } = req.body
         const user = await pool.query('SELECT id, user_type_id, username, name, warehouse_id FROM user WHERE username = ? AND password = PASSWORD(?) AND active', [username, password])
+
+        if (user[0].length == 0) {
+            res.status(404).json(user[0])
+            return
+        }
 
         res.json(user[0])
     } catch (error) {
