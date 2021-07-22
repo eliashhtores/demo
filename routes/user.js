@@ -92,7 +92,7 @@ router.post('/validate', async (req, res) => {
             return
         }
 
-        res.json(user[0])
+        res.json(user[0][0])
     } catch (error) {
         res.status(500).json({ message: error.message, status: 500 })
         console.error(error.message)
@@ -106,7 +106,7 @@ async function getUser(req, res, next) {
         const user = await pool.query('SELECT * FROM user WHERE id = ?', [id])
         if (user[0].length === 0) return res.status(404).json({ message: 'User not found', status: 404 })
 
-        res.user = user[0]
+        res.user = user[0][0]
         next()
     } catch (error) {
         res.status(500).json({ message: error.message, status: 500 })
