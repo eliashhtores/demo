@@ -10,12 +10,12 @@ router.get('/', async (req, res) => {
     try {
         const users =
             await pool.query(`SELECT um.id, um.username, um.name, description AS user_type, um.active, w.name AS warehouse, us.username AS created_by, um.created_at, utr.username AS updated_by, um.updated_at 
-                                        FROM user um 
-                                        INNER JOIN user us ON (um.created_by = us.id)
-                                        INNER JOIN user utr ON (um.updated_by = utr.id)
-                                        JOIN user_type ut ON (ut.id = um.user_type_id)
-                                        JOIN warehouse w ON (w.id = um.warehouse_id)
-                                        ORDER BY um.id ASC`)
+                                FROM user um 
+                                JOIN user us ON (um.created_by = us.id)
+                                LEFT JOIN user utr ON (um.updated_by = utr.id)
+                                JOIN user_type ut ON (ut.id = um.user_type_id)
+                                JOIN warehouse w ON (w.id = um.warehouse_id)
+                                ORDER BY um.id ASC`)
         res.json(users[0])
     } catch (error) {
         res.status(500).json({ message: error.message })
