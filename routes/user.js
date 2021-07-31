@@ -38,7 +38,7 @@ router.patch('/:id', getUserByID, async (req, res) => {
     const { id } = req.params
     const { username, name, user_type_id, warehouse_id, updated_by } = req.body
     try {
-        const updatedUser = await pool.query('UPDATE user SET username = ?, name = ?, user_type_id = ?, warehouse_id = ?, updated_by = ? WHERE id = ?', [
+        const updatedUser = await pool.query('UPDATE user SET name = ?, user_type_id = ?, warehouse_id = ?, updated_by = ? WHERE id = ?', [
             username,
             name,
             user_type_id,
