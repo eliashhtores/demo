@@ -23,13 +23,18 @@ router.get('/', async (req, res) => {
     }
 })
 
-// Get one user
-router.get('/:id', getUser, async (req, res) => {
+// Get one user by id
+router.get('/:id', getUserByID, async (req, res) => {
+    res.json(res.user)
+})
+
+// Check duplicated user
+router.get('/checkDuplicated/:username', getUserByUsername, async (req, res) => {
     res.json(res.user)
 })
 
 // Update user
-router.patch('/:id', getUser, async (req, res) => {
+router.patch('/:id', getUserByID, async (req, res) => {
     const { id } = req.params
     const { username, name, user_type_id, warehouse_id, updated_by } = req.body
     try {
@@ -49,11 +54,10 @@ router.patch('/:id', getUser, async (req, res) => {
 })
 
 // Toggle user status
-router.post('/toggle/:id', getUser, async (req, res) => {
+router.post('/toggle/:id', getUserByID, async (req, res) => {
     try {
         const { id } = req.params
         const { updated_by } = req.body
-        // const { updated_at } = req.body
         const user = await pool.query('UPDATE user SET active = !active, updated_by = ? WHERE id = ?', [updated_by, id])
         res.json(user[0])
     } catch (error) {
@@ -107,13 +111,27 @@ router.post('/validate', async (req, res) => {
 })
 
 // Middleware functions
-async function getUser(req, res, next) {
+async function getUserByID(req, res, next) {
     try {
         const { id } = req.params
         const user = await pool.query('SELECT * FROM user WHERE id = ?', [id])
         if (user[0].length === 0) return res.status(404).json({ message: 'User not found', status: 404 })
 
         res.user = user[0][0]
+        next()
+    } catch (error) {
+        res.status(500).json({ message: error.message, status: 500 })
+        console.error(error.message)
+    }
+}
+
+async function getUserByUsername(req, res, next) {
+    try {
+        const { username } = req.params
+        const user = await pool.query('SELECT * FROM user WHERE username = ?', [username])
+        if (user[0].length !== 0) return res.status(400).json({ message: 'Duplicated user', status: 400 })
+
+        res.user = user[0]
         next()
     } catch (error) {
         res.status(500).json({ message: error.message, status: 500 })
