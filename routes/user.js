@@ -38,13 +38,7 @@ router.patch('/:id', getUserByID, async (req, res) => {
     const { id } = req.params
     const { name, user_type_id, warehouse_id, updated_by } = req.body
     try {
-        const updatedUser = await pool.query('UPDATE user SET name = ?, user_type_id = ?, warehouse_id = ?, updated_by = ? WHERE id = ?', [
-            name,
-            user_type_id,
-            warehouse_id,
-            updated_by,
-            id,
-        ])
+        const updatedUser = await pool.query('UPDATE user SET name = ?, user_type_id = ?, warehouse_id = ?, updated_by = ? WHERE id = ?', [name, user_type_id, warehouse_id, updated_by, id])
         res.json(updatedUser)
     } catch (error) {
         res.status(500).json({ message: error.message })
@@ -68,12 +62,7 @@ router.post('/toggle/:id', getUserByID, async (req, res) => {
 // Create user
 router.post('/', async (req, res) => {
     try {
-        const { username } = req.body
-        const { name } = req.body
-        const { password } = req.body
-        const { user_type_id } = req.body
-        const { warehouse_id } = req.body
-        const { created_by } = req.body
+        const { username, name, password, user_type_id, warehouse_id, created_by } = req.body
 
         const newUser = await pool.query('INSERT INTO user (username, name, password, user_type_id, warehouse_id, created_by) VALUES (?, ?, PASSWORD(?), ?, ?, ?)', [
             username,
@@ -93,8 +82,7 @@ router.post('/', async (req, res) => {
 // Validate user
 router.post('/validate', async (req, res) => {
     try {
-        const { username } = req.body
-        const { password } = req.body
+        const { username, password } = req.body
         const user = await pool.query('SELECT id, user_type_id, username, name, warehouse_id FROM user WHERE username = ? AND password = PASSWORD(?) AND active', [username, password])
 
         if (user[0].length == 0) {
@@ -124,14 +112,13 @@ async function getUserByID(req, res, next) {
     }
 }
 
-async function getUserByUsername(req, res, next) {
+async function getUserByUsername(req, res) {
     try {
         const { username } = req.params
         const user = await pool.query('SELECT * FROM user WHERE username = ?', [username])
         if (user[0].length !== 0) return res.status(400).json({ message: 'Duplicated user', status: 400 })
 
-        res.user = user[0]
-        next()
+        return res.status(200).json({})
     } catch (error) {
         res.status(500).json({ message: error.message, status: 500 })
         console.error(error.message)
