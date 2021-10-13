@@ -9,12 +9,11 @@ app.use(express.json())
 router.get('/', async (req, res) => {
     try {
         const users =
-            await pool.query(`SELECT um.id, um.username, um.name, description AS user_type, um.active, w.name AS warehouse, us.username AS created_by, um.created_at, utr.username AS updated_by, um.updated_at 
+            await pool.query(`SELECT um.id, um.username, um.name, description AS user_type, um.active, us.username AS created_by, um.created_at, utr.username AS updated_by, um.updated_at 
                                 FROM user um 
                                 JOIN user us ON (um.created_by = us.id)
                                 LEFT JOIN user utr ON (um.updated_by = utr.id)
                                 JOIN user_type ut ON (ut.id = um.user_type_id)
-                                JOIN warehouse w ON (w.id = um.warehouse_id)
                                 ORDER BY um.id ASC`)
         res.json(users[0])
     } catch (error) {
@@ -36,9 +35,9 @@ router.get('/checkDuplicated/:username', getUserByUsername, async (req, res) => 
 // Update user
 router.patch('/:id', getUserByID, async (req, res) => {
     const { id } = req.params
-    const { name, user_type_id, warehouse_id, updated_by } = req.body
+    const { name, user_type_id, updated_by } = req.body
     try {
-        const updatedUser = await pool.query('UPDATE user SET name = ?, user_type_id = ?, warehouse_id = ?, updated_by = ? WHERE id = ?', [name, user_type_id, warehouse_id, updated_by, id])
+        const updatedUser = await pool.query('UPDATE user SET name = ?, user_type_id = ?, updated_by = ? WHERE id = ?', [name, user_type_id, updated_by, id])
         res.json(updatedUser)
     } catch (error) {
         res.status(500).json({ message: error.message })
@@ -62,14 +61,13 @@ router.post('/toggle/:id', getUserByID, async (req, res) => {
 // Create user
 router.post('/', async (req, res) => {
     try {
-        const { username, name, password, user_type_id, warehouse_id, created_by } = req.body
+        const { username, name, password, user_type_id, created_by } = req.body
 
-        const newUser = await pool.query('INSERT INTO user (username, name, password, user_type_id, warehouse_id, created_by) VALUES (?, ?, PASSWORD(?), ?, ?, ?)', [
+        const newUser = await pool.query('INSERT INTO user (username, name, password, user_type_id, created_by) VALUES (?, ?, PASSWORD(?), ?, ?, ?)', [
             username,
             name,
             password,
             user_type_id,
-            warehouse_id,
             created_by,
         ])
         res.status(201).json(newUser)
@@ -83,7 +81,7 @@ router.post('/', async (req, res) => {
 router.post('/validate', async (req, res) => {
     try {
         const { username, password } = req.body
-        const user = await pool.query('SELECT id, user_type_id, username, name, warehouse_id FROM user WHERE username = ? AND password = PASSWORD(?) AND active', [username, password])
+        const user = await pool.query('SELECT id, user_type_id, username, name FROM user WHERE username = ? AND password = PASSWORD(?) AND active', [username, password])
 
         if (user[0].length == 0) {
             res.status(404).json(user[0])

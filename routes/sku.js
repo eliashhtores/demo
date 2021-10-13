@@ -9,11 +9,12 @@ app.use(express.json())
 router.get('/', async (req, res) => {
     try {
         const skus =
-            await pool.query(`SELECT s.id, s.barcode, s.description, uom.description AS unit_of_measurement, s.price, s.cost, s.minimum_inventory, us.username AS created_by, s.created_at, ur.username AS updated_by, s.updated_at, s.active 
+            await pool.query(`SELECT s.id, s.barcode, s.description, uom.description AS unit_of_measurement, s.price, s.cost, s.rack, mt.description AS med_type, s.minimum_inventory, us.username AS created_by, s.created_at, ur.username AS updated_by, s.updated_at, s.active 
                                 FROM sku s
                                 JOIN unit_of_measurement uom ON (uom.id = s.unit_of_measurement_id)
                                 JOIN user us ON (s.created_by = us.id)
                                 LEFT JOIN user ur ON (s.updated_by = ur.id)
+                                LEFT JOIN med_type mt ON (s.med_type_id = mt.id)
                                 ORDER BY s.id ASC`)
         res.json(skus[0])
     } catch (error) {
@@ -32,17 +33,19 @@ router.get('/checkDuplicated/:barcode', getSkuByBarcode, async (req, res) => {
     res.json(res.barcode)
 })
 
-// Update sku @CHANGE
+// Update sku
 router.patch('/:id', getSkuByID, async (req, res) => {
     const { id } = req.params
-    const { barcode, description, unit_of_measurement_id, price, cost, minimum_inventory, updated_by } = req.body
+    const { barcode, description, unit_of_measurement_id, price, cost, rack, med_type_id, minimum_inventory, updated_by } = req.body
     try {
-        const updatedSku = await pool.query('UPDATE sku SET barcode = ?, description = ?, unit_of_measurement_id = ?, price = ?, cost = ?, minimum_inventory = ?, updated_by = ? WHERE id = ?', [
+        const updatedSku = await pool.query('UPDATE sku SET barcode = ?, description = ?, unit_of_measurement_id = ?, price = ?, cost = ?, rack = ?, med_type_id = ?, minimum_inventory = ?, updated_by = ? WHERE id = ?', [
             barcode,
             description,
             unit_of_measurement_id,
             price,
             cost,
+            rack,
+            med_type_id,
             minimum_inventory,
             updated_by,
             id,
@@ -70,11 +73,13 @@ router.post('/toggle/:id', getSkuByID, async (req, res) => {
 // Create sku
 router.post('/', async (req, res) => {
     try {
-        const { barcode, cost, description, minimum_inventory, price, unit_of_measurement_id, created_by } = req.body
+        const { barcode, cost, rack, med_type_id, description, minimum_inventory, price, unit_of_measurement_id, created_by } = req.body
 
-        const newSku = await pool.query('INSERT INTO sku (barcode, cost, description, minimum_inventory, price, unit_of_measurement_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)', [
+        const newSku = await pool.query('INSERT INTO sku (barcode, cost, rack, med_type_id, description, minimum_inventory, price, unit_of_measurement_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
             barcode,
             cost,
+            rack,
+            med_type_id,
             description,
             minimum_inventory,
             price,
