@@ -5,11 +5,10 @@ const pool = require('../database/db')
 
 app.use(express.json())
 
-// Get all client
+// Get all clients
 router.get('/', async (req, res) => {
     try {
-        const client =
-            await pool.query(`SELECT c.id, c.name, c.address, city, telephone, c.active, us.username AS created_by, c.created_at, ur.username AS updated_by, c.updated_at
+        const client = await pool.query(`SELECT c.id, c.name, c.address, city, telephone, c.active, us.username AS created_by, c.created_at, ur.username AS updated_by, c.updated_at
                                 FROM client c
                                 JOIN user us ON (c.created_by = us.id)
                                 LEFT JOIN user ur ON (c.updated_by = ur.id)
@@ -36,14 +35,7 @@ router.patch('/:id', getClientByID, async (req, res) => {
     const { id } = req.params
     const { name, address, city, telephone, updated_by } = req.body
     try {
-        const updatedClient = await pool.query('UPDATE client SET name = ?, address = ?, city = ?, telephone = ?, updated_by = ? WHERE id = ?', [
-            name,
-            address,
-            city,
-            telephone,
-            updated_by,
-            id
-        ])
+        const updatedClient = await pool.query('UPDATE client SET name = ?, address = ?, city = ?, telephone = ?, updated_by = ? WHERE id = ?', [name, address, city, telephone, updated_by, id])
         res.json(updatedClient)
     } catch (error) {
         res.status(500).json({ message: error.message })
@@ -68,13 +60,7 @@ router.post('/toggle/:id', getClientByID, async (req, res) => {
 router.post('/', async (req, res) => {
     try {
         const { name, address, city, telephone, created_by } = req.body
-        const newClient = await pool.query('INSERT INTO client (name, address, city, telephone, created_by) VALUES (?, ?, ?, ?, ?)', [
-            name,
-            address,
-            city,
-            telephone,
-            created_by
-        ])
+        const newClient = await pool.query('INSERT INTO client (name, address, city, telephone, created_by) VALUES (?, ?, ?, ?, ?)', [name, address, city, telephone, created_by])
         res.status(201).json(newClient)
     } catch (error) {
         res.status(500).json({ message: error.message })

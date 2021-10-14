@@ -5,7 +5,7 @@ const pool = require('../database/db')
 
 app.use(express.json())
 
-// Get all supplier
+// Get all suppliers
 router.get('/', async (req, res) => {
     try {
         const supplier = await pool.query(`SELECT s.id, s.name, attention, address, city, s.active, us.username AS created_by, s.created_at, ur.username AS updated_by, s.updated_at
