@@ -115,7 +115,7 @@ async function validateSkuByBarcode(req, res) {
     try {
         const { barcode } = req.params
         const sku = await pool.query('SELECT * FROM sku WHERE barcode = ?', [barcode])
-        if (sku[0].length !== 0) return res.status(200).json({ message: 'Valid sku', status: 200 })
+        if (sku[0].length !== 0) return res.status(200).json({ message: 'Valid sku', status: 200, sku: sku[0][0] })
 
         return res.status(404).json({ message: 'Sku not found', status: 404 })
     } catch (error) {
