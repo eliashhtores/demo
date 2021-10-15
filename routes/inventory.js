@@ -56,18 +56,17 @@ app.use(express.json())
 //     }
 // })
 
-// Create client
+// Create inventory registers
 router.post('/', async (req, res) => {
     const data = req.body
     const supplier_id = req.body.shift().supplier_id
-    for (const row of data) {
-        try {
-            const newInventory = await pool.query('INSERT INTO inventory (sku_id, qty_received, expiration_date) VALUES (?, ?, ?)', [row.sku_id, row.qty_received, row.expiration_date])
-        } catch (error) {
-            res.status(500).json({ message: error.message })
-            console.error(error.message)
-        }
-        res.status(201)
+    const insert_data = data.reduce((a, i) => [...a, Object.values(i)], [])
+    try {
+        const newInventory = await pool.query('INSERT INTO inventory (sku_id, qty_received, expiration_date) VALUES ?', [insert_data])
+        res.status(201).json(newInventory)
+    } catch (error) {
+        res.status(500).json({ message: error.message })
+        console.error(error.message)
     }
 })
 
