@@ -8,10 +8,15 @@ app.use(express.json())
 // Get all inventory
 router.get('/', async (req, res) => {
     try {
-        const inventory = await pool.query(`SELECT * FROM inventory inv 
-                                                JOIN sku sk ON (sk.id = inv.sku_id)
-                                                JOIN unit_of_measurement uom ON (uom.id = sk.unit_of_measurement_id)
-                                                JOIN med_type mt ON (mt.id = sk.med_type_id)`)
+        const inventory = await pool.query(`SELECT sku.id, barcode, description, (qty_received - qty_shipped) AS qty_available, qty_received, qty_shipped, qty_adjusted, 
+                                            CASE
+                                            WHEN expiration_date != 0000-00-00 THEN expiration_date
+                                            ELSE ''
+                                            END AS expiration_date
+                                            FROM inventory inv 
+                                            JOIN sku ON (sku.id = inv.sku_id)
+                                            WHERE (qty_received - qty_shipped) >= 0
+                                            ORDER BY sku.id ASC`)
         res.status(200).json(inventory[0])
     } catch (error) {
         res.status(500).json({ message: error.message })
@@ -195,7 +200,7 @@ async function setFolio() {
 async function getInventoryByBarcode(req, res, next) {
     try {
         const { barcode } = req.params
-        const inventory = await pool.query('SELECT sku.*,  qty_received - qty_shipped + qty_adjusted AS qty_available FROM inventory JOIN sku ON (sku.id = inventory.sku_id) WHERE barcode = ?', [
+        const inventory = await pool.query('SELECT sku.*,  SUM(qty_received - qty_shipped + qty_adjusted) AS qty_available FROM inventory JOIN sku ON (sku.id = inventory.sku_id) WHERE barcode = ?', [
             barcode,
         ])
         if (inventory[0].length === 0) return res.status(404).json({ message: 'Inventory not found', status: 404 })
