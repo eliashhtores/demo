@@ -30,7 +30,8 @@ router.get('/:barcode', getInventoryByBarcode, async (req, res) => {
 })
 
 // Get inventory ledger by barcode
-router.get('/ledger/barcode/:barcode', getInventoryLedgerBySku, async (req, res) => {
+// @TODO This needs to be a post request
+router.get('/ledger/form/:barcode', getInventoryLedgerBySku, async (req, res) => {
     res.status(200).json(res.inventory_ledger)
 })
 
@@ -215,28 +216,30 @@ async function getInventoryByBarcode(req, res, next) {
 
 async function getInventoryLedgerBySku(req, res, next) {
     try {
-        let data = req.params.barcode
-        let where = 'barcode'
+        // @TODO change this
+        let data = req.params.data
+        console.log(req.params)
+        // let where = 'barcode'
 
         if (req.params.hasOwnProperty('sku_id')) {
             data = req.params.sku_id
             where = 'sku_id'
         }
-        const inventory_ledger = await pool.query(
-            `SELECT folio, rc.description AS movement_type, sku.description AS sku_description, barcode, qty, COALESCE(su.name, '') AS supplier, COALESCE(cl.name, '') AS client, COALESCE(il.description, '') AS description, us.name, il.created_at
-                                                    FROM inventory_ledger il
-                                                    JOIN reason_code rc ON (rc.id = il.reason_code_id)
-                                                    JOIN user us ON (us.id = il.created_by)
-                                                    JOIN sku ON (sku.id = il.sku_id)
-                                                    LEFT JOIN supplier su ON (su.id = il.supplier_id)
-                                                    LEFT JOIN client cl ON (cl.id = il.client_id)
-                                                    WHERE ${where} = ?
-                                                    ORDER BY il.created_at DESC`,
-            data
-        )
-        if (inventory_ledger[0].length === 0) return res.status(404).json({ message: 'Inventory ledger not found', status: 404 })
-        res.inventory_ledger = inventory_ledger[0]
-        next()
+        // const inventory_ledger = await pool.query(
+        //     `SELECT folio, rc.description AS movement_type, sku.description AS sku_description, barcode, qty, COALESCE(su.name, '') AS supplier, COALESCE(cl.name, '') AS client, COALESCE(il.description, '') AS description, us.name, il.created_at
+        //                                             FROM inventory_ledger il
+        //                                             JOIN reason_code rc ON (rc.id = il.reason_code_id)
+        //                                             JOIN user us ON (us.id = il.created_by)
+        //                                             JOIN sku ON (sku.id = il.sku_id)
+        //                                             LEFT JOIN supplier su ON (su.id = il.supplier_id)
+        //                                             LEFT JOIN client cl ON (cl.id = il.client_id)
+        //                                             WHERE ${where} = ?
+        //                                             ORDER BY il.created_at DESC`,
+        //     data
+        // )
+        // if (inventory_ledger[0].length === 0) return res.status(404).json({ message: 'Inventory ledger not found', status: 404 })
+        // res.inventory_ledger = inventory_ledger[0]
+        // next()
     } catch (error) {
         res.status(500).json({ message: error.message, status: 500 })
         console.error(error.message)
