@@ -222,7 +222,7 @@ async function getInventoryByBarcode(req, res, next) {
     try {
         const { barcode } = req.params
         const inventory = await pool.query(
-            'SELECT sku.*,  (qty_received - qty_shipped + qty_adjusted) AS qty_available, DATE_FORMAT(expiration_date, "%Y-%m-%d") AS expiration_date FROM inventory JOIN sku ON (sku.id = inventory.sku_id) WHERE barcode = ? GROUP BY expiration_date ORDER BY expiration_date ',
+            'SELECT sku.*,  (qty_received - qty_shipped + qty_adjusted) AS qty_available, DATE_FORMAT(expiration_date, "%Y-%m-%d") AS expiration_date, inventory.id AS inventory_id FROM inventory JOIN sku ON (sku.id = inventory.sku_id) WHERE barcode = ? GROUP BY expiration_date ORDER BY expiration_date',
             [barcode]
         )
         if (inventory[0].length === 0) return res.status(404).json({ message: 'Inventory not found', status: 404 })
