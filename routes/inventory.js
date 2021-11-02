@@ -120,8 +120,8 @@ router.patch('/', async (req, res) => {
     let updatedInventory
     try {
         for (const element of data) {
-            updatedInventory += await pool.query('UPDATE inventory SET qty_shipped = qty_shipped + ? WHERE sku_id = ?', [element.qty_shipped, element.sku_id])
-            await createSaleLedgerRecord(element.qty_shipped, element.sku_id, reason_code_id, client_id, created_by)
+            updatedInventory += await pool.query('UPDATE inventory SET qty_shipped = qty_shipped + ? WHERE id = ?', [element.sku.qty_available, element.sku.inventory_id])
+            await createSaleLedgerRecord(element.sku.qty_available, element.sku.sku_id, element.sku.expiration_date, reason_code_id, client_id, created_by)
         }
         res.status(201).json(updatedInventory)
     } catch (error) {
@@ -163,14 +163,15 @@ async function createReceiptLedgerRecord(insert_data, reason_code_id, supplier_i
     }
 }
 
-async function createSaleLedgerRecord(qty_shipped, sku_id, reason_code_id, client, created_by) {
+async function createSaleLedgerRecord(qty_shipped, sku_id, expiration_date, reason_code_id, client, created_by) {
     folio = await getFolio()
     try {
-        await pool.query('INSERT INTO inventory_ledger (folio, reason_code_id, sku_id, qty, client_id, created_by) VALUES (?, ?, ?, ?, ?, ?)', [
+        await pool.query('INSERT INTO inventory_ledger (folio, reason_code_id, sku_id, qty, expiration_date, client_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)', [
             folio,
             reason_code_id,
             sku_id,
             qty_shipped,
+            expiration_date,
             client,
             created_by,
         ])
@@ -222,7 +223,7 @@ async function getInventoryByBarcode(req, res, next) {
     try {
         const { barcode } = req.params
         const inventory = await pool.query(
-            'SELECT sku.*,  (qty_received - qty_shipped + qty_adjusted) AS qty_available, DATE_FORMAT(expiration_date, "%Y-%m-%d") AS expiration_date, inventory.id AS inventory_id FROM inventory JOIN sku ON (sku.id = inventory.sku_id) WHERE barcode = ? GROUP BY expiration_date ORDER BY expiration_date',
+            'SELECT sku.*, (qty_received - qty_shipped + qty_adjusted) AS qty_available, DATE_FORMAT(expiration_date, "%Y-%m-%d") AS expiration_date, inventory.id AS inventory_id FROM inventory JOIN sku ON (sku.id = inventory.sku_id) WHERE barcode = ? AND (qty_received - qty_shipped + qty_adjusted) > 0 GROUP BY expiration_date ORDER BY expiration_date ',
             [barcode]
         )
         if (inventory[0].length === 0) return res.status(404).json({ message: 'Inventory not found', status: 404 })
