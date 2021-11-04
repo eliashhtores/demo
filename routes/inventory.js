@@ -115,13 +115,21 @@ router.post('/', async (req, res) => {
 router.patch('/', async (req, res) => {
     const reason_code_id = 5
     const data = req.body
-    const client_id = data.shift().client_id
-    const created_by = data.shift().created_by
+    let created_by = data.shift()
+    let client_id = data.shift()
     let updatedInventory
+
+    created_by = Object.values(created_by)
+    created_by = created_by[0]
+    client_id = Object.values(client_id)
+    client_id = client_id[0]
+
     try {
         for (const element of data) {
-            updatedInventory += await pool.query('UPDATE inventory SET qty_shipped = qty_shipped + ? WHERE id = ?', [element.sku.qty_available, element.sku.inventory_id])
-            await createSaleLedgerRecord(element.sku.qty_available, element.sku.sku_id, element.sku.expiration_date, reason_code_id, client_id, created_by)
+            for (const row of element) {
+                updatedInventory += await pool.query('UPDATE inventory SET qty_shipped = qty_shipped + ? WHERE id = ?', [row.qty_updated, row.inventory_id])
+                await createSaleLedgerRecord(row.qty_updated, row.id, row.expiration_date, reason_code_id, client_id, created_by)
+            }
         }
         res.status(201).json(updatedInventory)
     } catch (error) {
@@ -163,7 +171,7 @@ async function createReceiptLedgerRecord(insert_data, reason_code_id, supplier_i
     }
 }
 
-async function createSaleLedgerRecord(qty_shipped, sku_id, expiration_date, reason_code_id, client, created_by) {
+async function createSaleLedgerRecord(qty_shipped, sku_id, expiration_date, reason_code_id, client_id, created_by) {
     folio = await getFolio()
     try {
         await pool.query('INSERT INTO inventory_ledger (folio, reason_code_id, sku_id, qty, expiration_date, client_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)', [
@@ -172,7 +180,7 @@ async function createSaleLedgerRecord(qty_shipped, sku_id, expiration_date, reas
             sku_id,
             qty_shipped,
             expiration_date,
-            client,
+            client_id,
             created_by,
         ])
         setFolio()
