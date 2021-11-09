@@ -8,14 +8,14 @@ app.use(express.json())
 // Get all inventory
 router.get('/', async (req, res) => {
     try {
-        const inventory = await pool.query(`SELECT sku.id, barcode, description, (qty_received - qty_shipped) AS qty_available, qty_received, qty_shipped, qty_adjusted, 
+        const inventory = await pool.query(`SELECT sku.id, barcode, description, (qty_received - qty_shipped + qty_adjusted) AS qty_available, qty_received, qty_shipped, qty_adjusted, 
                                             CASE
                                             WHEN expiration_date != 0000-00-00 THEN expiration_date
                                             ELSE ''
                                             END AS expiration_date
                                             FROM inventory inv 
                                             JOIN sku ON (sku.id = inv.sku_id)
-                                            WHERE (qty_received - qty_shipped) >= 0
+                                            WHERE (qty_received - qty_shipped + qty_adjusted) >= 0
                                             ORDER BY sku.id ASC`)
         res.status(200).json(inventory[0])
     } catch (error) {
@@ -34,8 +34,8 @@ router.post('/ledger', getInventoryLedgerBySku, async (req, res) => {
     res.status(200).json(res.inventory_ledger)
 })
 
-// Get inventory ledger records by sku_id
-router.get('/ledger/sku/:sku_id', getInventoryLedgerBySku, async (req, res) => {
+// Get inventory ledger records by sku_id and expiration_date
+router.post('/ledger/sku/', getInventoryLedgerBySku, async (req, res) => {
     res.status(200).json(res.inventory_ledger)
 })
 
@@ -258,6 +258,9 @@ async function getInventoryLedgerBySku(req, res, next) {
             where = `WHERE barcode = '${req.body.barcode}'`
         } else if (req.body.hasOwnProperty('sku_id')) {
             where = `WHERE sku_id = ${req.body.sku_id}`
+            if (req.body.hasOwnProperty('expiration_date')) {
+                where += ` AND expiration_date = '${req.body.expiration_date}'`
+            }
         }
         const inventory_ledger = await pool.query(
             `SELECT folio, rc.description AS movement_type, sku.description AS sku_description, barcode, qty, COALESCE(su.name, '') AS supplier, COALESCE(cl.name, '') AS client, COALESCE(il.description, '') AS description, us.name, il.created_at
