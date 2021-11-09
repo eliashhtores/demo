@@ -42,7 +42,7 @@ router.get('/ledger/sku/:sku_id', getInventoryLedgerBySku, async (req, res) => {
 // Get skus that require inventory
 router.get('/reports/get_minimum', async (req, res) => {
     try {
-        const inventory = await pool.query(`SELECT sku.barcode AS barcode, description, (qty_received - qty_shipped + qty_adjusted) AS inv_qty, minimum_inventory
+        const inventory = await pool.query(`SELECT sku.barcode AS barcode, description, SUM(qty_received - qty_shipped + qty_adjusted) AS inv_qty, minimum_inventory
                                                 FROM inventory inv
                                                 JOIN sku ON (sku.id = inv.sku_id)
                                                 WHERE (qty_received - qty_shipped + qty_adjusted) <= minimum_inventory`)
