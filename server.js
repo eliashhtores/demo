@@ -11,6 +11,7 @@ const medTypeRouter = require('./routes/med_type')
 const clientRouter = require('./routes/client')
 const inventoryRouter = require('./routes/inventory')
 const reasonCodeRouter = require('./routes/reasonCode')
+const salesRouter = require('./routes/sales')
 
 app.use(cors())
 app.use(express.json())
@@ -22,6 +23,7 @@ app.use('/med_type', medTypeRouter)
 app.use('/client', clientRouter)
 app.use('/inventory', inventoryRouter)
 app.use('/reason_code', reasonCodeRouter)
+app.use('/sales', salesRouter)
 
 app.listen(process.env.PORT || 3001, () => {
     console.log(`Server running on port ${process.env.PORT}...`)
