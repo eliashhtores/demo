@@ -82,6 +82,7 @@ router.get('/reports/sales', async (req, res) => {
                                                 JOIN sku ON (sku.id = il.sku_id)
                                                 JOIN client cl ON (cl.id = il.client_id)
                                                 WHERE code = ?
+                                                AND qty > 0
                                                 ORDER BY il.created_at DESC`,
             [code]
         )
@@ -100,10 +101,12 @@ router.post('/', async (req, res) => {
     const created_by = data.shift().created_by
     const insert_data = data.reduce((a, i) => [...a, Object.values(i)], [])
     try {
+        folio = await getFolio()
         const newInventory = await pool.query('INSERT INTO inventory (sku_id, qty_received, expiration_date) VALUES ? ON DUPLICATE KEY UPDATE qty_received = qty_received + VALUES(qty_received) ', [
             insert_data,
         ])
         await createReceiptLedgerRecord(insert_data, reason_code_id, supplier_id, created_by)
+        setFolio()
         res.status(201).json(newInventory)
     } catch (error) {
         res.status(500).json({ message: error.message })
@@ -119,16 +122,16 @@ router.patch('/', async (req, res) => {
     let client_id = data.shift()
     let updatedInventory
 
-    created_by = Object.values(created_by)
-    created_by = created_by[0]
     client_id = Object.values(client_id)
     client_id = client_id[0]
 
     try {
         for (const element of data) {
             for (const row of element) {
+                folio = await getFolio()
                 updatedInventory += await pool.query('UPDATE inventory SET qty_shipped = qty_shipped + ? WHERE id = ?', [row.qty_updated, row.inventory_id])
                 await createSaleLedgerRecord(row.qty_updated, row.id, row.expiration_date, reason_code_id, client_id, created_by)
+                setFolio()
             }
         }
         res.status(201).json(updatedInventory)
@@ -158,21 +161,18 @@ router.post('/adjustment', async (req, res) => {
 
 // Middleware functions
 async function createReceiptLedgerRecord(insert_data, reason_code_id, supplier_id, created_by) {
-    folio = await getFolio()
     for (const element of insert_data) {
         element.unshift(folio, reason_code_id)
         element.push(supplier_id, created_by)
     }
     try {
         await pool.query('INSERT INTO inventory_ledger (folio, reason_code_id, sku_id, qty, expiration_date, supplier_id, created_by) VALUES ?', [insert_data])
-        setFolio()
     } catch (error) {
         console.error(error.message)
     }
 }
 
 async function createSaleLedgerRecord(qty_shipped, sku_id, expiration_date, reason_code_id, client_id, created_by) {
-    folio = await getFolio()
     try {
         await pool.query('INSERT INTO inventory_ledger (folio, reason_code_id, sku_id, qty, expiration_date, client_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)', [
             folio,
@@ -183,7 +183,6 @@ async function createSaleLedgerRecord(qty_shipped, sku_id, expiration_date, reas
             client_id,
             created_by,
         ])
-        setFolio()
     } catch (error) {
         console.error(error.message)
     }
@@ -271,6 +270,7 @@ async function getInventoryLedgerBySku(req, res, next) {
                 LEFT JOIN supplier su ON (su.id = il.supplier_id)
                 LEFT JOIN client cl ON (cl.id = il.client_id)
                 ${where}
+                    AND qty > 0
                 ORDER BY il.created_at DESC`
         )
         if (inventory_ledger[0].length === 0) return res.status(404).json({ message: 'Inventory ledger not found', status: 404 })
