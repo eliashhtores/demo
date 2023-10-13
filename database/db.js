@@ -1,5 +1,6 @@
-const mysql = require('mysql2/promise')
-require('dotenv').config()
+const mysql = require("mysql2/promise")
+
+if (process.env.ENV !== "prod") require("dotenv").config()
 
 try {
     const pool = mysql.createPool({
@@ -7,8 +8,10 @@ try {
         password: process.env.DATABASE_PASSWORD,
         host: process.env.DATABASE_HOST,
         database: process.env.DATABASE_NAME,
+        dateStrings: true,
+        // debug: true,
     })
-    console.log('Connected to DB...')
+    console.log(`Connected to database ${process.env.DATABASE_NAME}...`)
     module.exports = pool
 } catch (error) {
     console.error(error)
